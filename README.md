@@ -207,6 +207,7 @@ sudo debootstrap --arch amd64 jammy mntdir
 e.g.
 
 root@root1-virtual-machine:~#   debootstrap --arch amd64 --no-check-gpg stable mntdir http://mirrors.aliyun.com/debian/
+
 I: Keyring file not available at /usr/share/keyrings/debian-archive-keyring.gpg; switching to https mirror https://deb.debian.org/debian
 I: Retrieving Packages
 I: Validating Packages
@@ -405,65 +406,6 @@ permitted by applicable law.
 Last login: Sun Mar  2 03:37:17 UTC 2025 on ttyS0
 root@kz-HP-EliteBook:~#
 
-Example 2: boot up VM with CXL DCD setup: the device is directly attached to the only root port of a host bridge. The device has two dynamic capacity regions, with each region being 2GiB in size.
-
-qemu-system-x86_64 \
-    -s \
-    -kernel /root/linux-kernel-dcd-2024-03-24/arch/x86_64/boot/bzImage \
-    -append "root=/dev/sda rw console=ttyS0,115200 ignore_loglevel nokaslr \
-             cxl_acpi.dyndbg=+fplm cxl_pci.dyndbg=+fplm cxl_core.dyndbg=+fplm \
-             cxl_mem.dyndbg=+fplm cxl_pmem.dyndbg=+fplm cxl_port.dyndbg=+fplm \
-             cxl_region.dyndbg=+fplm cxl_test.dyndbg=+fplm cxl_mock.dyndbg=+fplm \
-             cxl_mock_mem.dyndbg=+fplm dax.dyndbg=+fplm dax_cxl.dyndbg=+fplm \
-             device_dax.dyndbg=+fplm" \
-    -smp 1 \
-    -accel kvm \
-    -serial mon:stdio \
-    -nographic \
-    -qmp tcp:localhost:4444,server,wait=off \
-    -netdev user,id=network0,hostfwd=tcp::2024-:22 \
-    -device virtio-net-pci,netdev=network0 \
-    -monitor telnet:127.0.0.1:12345,server,nowait \
-    -drive file=/root/qemu.img,index=0,media=disk,format=raw \
-    -machine q35,cxl=on -m 8G,maxmem=32G,slots=8 \
-    -virtfs local,path=/lib/modules,mount_tag=modshare,security_model=mapped \
-    -virtfs local,path=/home/kz,mount_tag=homeshare,security_model=mapped \
-    -object memory-backend-file,id=cxl-mem1,share=on,mem-path=/tmp/cxltest.raw,size=512M \
-    -object memory-backend-file,id=cxl-lsa1,share=on,mem-path=/tmp/lsa.raw,size=512M \
-    -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1 \
-    -device cxl-rp,port=0,bus=cxl.1,id=root_port13,chassis=0,slot=2 \
-    -device cxl-type3,bus=root_port13,memdev=cxl-mem1,lsa=cxl-lsa1,id=cxl-pmem0 \
-    -M cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=8k
-
-e.g.
-root@root1-virtual-machine:~# qemu-system-x86_64 \
->     -s \
->     -kernel /root/linux-kernel-dcd-2024-03-24/arch/x86_64/boot/bzImage \
->     -append "root=/dev/sda rw console=ttyS0,115200 ignore_loglevel nokaslr \
->              cxl_acpi.dyndbg=+fplm cxl_pci.dyndbg=+fplm cxl_core.dyndbg=+fplm \
->              cxl_mem.dyndbg=+fplm cxl_pmem.dyndbg=+fplm cxl_port.dyndbg=+fplm \
->              cxl_region.dyndbg=+fplm cxl_test.dyndbg=+fplm cxl_mock.dyndbg=+fplm \
->              cxl_mock_mem.dyndbg=+fplm dax.dyndbg=+fplm dax_cxl.dyndbg=+fplm \
->              device_dax.dyndbg=+fplm" \
->     -smp 1 \
->     -accel kvm \
->     -serial mon:stdio \
->     -nographic \
->     -qmp tcp:localhost:4444,server,wait=off \
->     -netdev user,id=network0,hostfwd=tcp::2024-:22 \
->     -device virtio-net-pci,netdev=network0 \
->     -monitor telnet:127.0.0.1:12345,server,nowait \
->     -drive file=/root/qemu.img,index=0,media=disk,format=raw \
->     -machine q35,cxl=on -m 8G,maxmem=32G,slots=8 \
->     -virtfs local,path=/lib/modules,mount_tag=modshare,security_model=mapped \
->     -virtfs local,path=/home/kz,mount_tag=homeshare,security_model=mapped \
->     -object memory-backend-file,id=cxl-mem1,share=on,mem-path=/tmp/cxltest.raw,size=512M \
->     -object memory-backend-file,id=cxl-lsa1,share=on,mem-path=/tmp/lsa.raw,size=512M \
->     -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1 \
->     -device cxl-rp,port=0,bus=cxl.1,id=root_port13,chassis=0,slot=2 \
->     -device cxl-type3,bus=root_port13,memdev=cxl-mem1,lsa=cxl-lsa1,id=cxl-pmem0 \
->     -M cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=8k
-SeaBIOS (version rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org)
 
 Bringing up network
 ip link set dev enp0s2 up
